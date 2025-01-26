@@ -2,7 +2,7 @@
 import numpy as np
 import puzzle
 
-num = int(input("Enter the number of puzzles you want to solve (max 1000000):"))
+num = int(input("Enter the number of puzzles you want to solve (max 100000):"))
 
 # Import code is from Kaggle dataset
 quizzes = np.zeros((num, 81), np.int32)
