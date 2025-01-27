@@ -18,3 +18,5 @@ solutions = solutions.reshape((-1, 9, 9))
 
 for quiz in quizzes:
     p = puzzle.Puzzle(quiz.tolist())
+    result = p.solve()
+    print(result)
