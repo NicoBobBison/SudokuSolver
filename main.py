@@ -19,8 +19,18 @@ solutions = solutions.reshape((-1, 9, 9))
 for i, quiz in enumerate(quizzes):
     p = puzzle.Puzzle(quiz.tolist())
     result = p.solve()
+    result_str = ""
+    for j in result:
+        if len(j) == 1:
+            result_str += str(j[0])
+        else:
+            result_str += str(j)
     sol = "".join(str(x) for y in solutions[i].tolist() for x in y)
-    if sol == result:
+    if sol == result_str:
         print("Solved correctly.")
     else:
-        print("Error")
+        print("Error:")
+        print(f"Problem          : {"".join(str(x) for y in quiz.tolist() for x in y)}")
+        print(f"Intended solution: {sol}")
+        found = ""
+        print(f"Solution found   : {result_str}")

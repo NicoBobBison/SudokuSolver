@@ -13,8 +13,6 @@ class Puzzle:
                 self.domains.append([1, 2, 3, 4, 5, 6, 7, 8, 9])
             else:
                 self.domains.append([val])
-        # print(self.__get_neighbors(19))
-        # exit()
 
     # AC-3
     def solve(self):
@@ -30,7 +28,7 @@ class Puzzle:
                 for neighbor in self.__get_neighbors(popped[0]):
                     q.put(neighbor)
                     # print(f"New put: {neighbor}")
-        return "".join(str(x) for y in self.domains for x in y)
+        return self.domains
     
     def __revise(self, x, y):
         try:
@@ -87,16 +85,20 @@ class Puzzle:
 
     def __get_neighbors(self, coord: int):
         results = []
-        for i in range(coord - (coord // 9), coord - (coord // 9) + 9):
+        # Same row
+        for i in range(coord - (coord % 9), coord - (coord % 9) + 9):
             if i != coord:
                 results.append((coord, i))
+                #Same column
         for i in range(coord % 9, 81, 9):
             if i != coord:
                 results.append((coord, i))
-        start_row = (coord // 9) // 3
-        start_col = (coord % 9) // 3
-        for r in range(start_row, start_row + 27, 9):
-            for c in range(start_col, start_col + 3):
+        # Same box
+        # Wizard magic to get the top left tile of the current box
+        start = coord - (coord % 3) - (9 * ((coord // 9) % 3))
+        for r in range(start, start + 27, 9):
+            for c in range(3):
                 if r + c != coord:
                     results.append((coord, r + c))
         return results
+    
