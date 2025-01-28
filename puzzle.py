@@ -13,6 +13,8 @@ class Puzzle:
                 self.domains.append([1, 2, 3, 4, 5, 6, 7, 8, 9])
             else:
                 self.domains.append([val])
+        # print(self.__get_neighbors(19))
+        # exit()
 
     # AC-3
     def solve(self):
@@ -30,9 +32,15 @@ class Puzzle:
                     # print(f"New put: {neighbor}")
         return "".join(str(x) for y in self.domains for x in y)
     
-    def __revise(self, x, y):            
-        xval = self.domains[x][0]
-        yval = self.domains[y][0]
+    def __revise(self, x, y):
+        try:
+            xval = self.domains[x][0]
+            yval = self.domains[y][0]
+        except:
+            print("Error")
+            print(self.domains)
+            print((x, y))
+            exit()
         if len(self.domains[x]) == 1 and xval in self.domains[y]:
             self.domains[y].remove(xval)
             return True
@@ -77,13 +85,18 @@ class Puzzle:
                         result[start_row * 3 + start_col].append(row * 9 + col)
         return result
 
-    # This is awful
-    def __get_neighbors(self, coord):
+    def __get_neighbors(self, coord: int):
         results = []
-        for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
-            if coord not in group:
-                continue
-            for pair in [x for x in self.__alldiff(group)]:
-                if coord in pair:
-                    results.append(pair)
+        for i in range(coord - (coord // 9), coord - (coord // 9) + 9):
+            if i != coord:
+                results.append((coord, i))
+        for i in range(coord % 9, 81, 9):
+            if i != coord:
+                results.append((coord, i))
+        start_row = (coord // 9) // 3
+        start_col = (coord % 9) // 3
+        for r in range(start_row, start_row + 27, 9):
+            for c in range(start_col, start_col + 3):
+                if r + c != coord:
+                    results.append((coord, r + c))
         return results
