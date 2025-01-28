@@ -1,71 +1,89 @@
 import numpy as np
 import queue
 
+# Coordinates start with 0 at top left, then move right and wrap around. Bottom right is 80.
 class Puzzle:
     def __init__(self, rows):
         self.domains = []
-        for row_count, row in enumerate(rows):
-            self.domains.append([])
-            for val_count, val in enumerate(row):
-                self.domains[row_count].append([])
-                if val == 0:
-                    self.domains[row_count][val_count] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-                else:
-                    self.domains[row_count][val_count] = [val]
-        # print(self)
-        # print("\n")
-        # print(self.__get_all_boxes())
+        combined = []
+        for r in rows:
+            combined += r
+        for val in combined:
+            if val == 0:
+                self.domains.append([1, 2, 3, 4, 5, 6, 7, 8, 9])
+            else:
+                self.domains.append([val])
 
+    # AC-3
     def solve(self):
         q = queue.Queue()
         for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
-            q.put(group)
+            for pair in self.__alldiff(group):
+                q.put(pair)
+                # print(f"Put: {pair}")
         while not q.empty():
             popped = q.get()
-            if self.__alldiff(popped):
-                # This should technically also add ALL the node's neighbors, but I'm neglecting this since we need to implement search anyways
-                q.put(popped)
-        return self.domains
+            # print(f"Popped: {popped}")
+            if self.__revise(popped[0], popped[1]):
+                for neighbor in self.__get_neighbors(popped[0]):
+                    q.put(neighbor)
+                    # print(f"New put: {neighbor}")
+        return "".join(str(x) for y in self.domains for x in y)
+    
+    def __revise(self, x, y):            
+        xval = self.domains[x][0]
+        yval = self.domains[y][0]
+        if len(self.domains[x]) == 1 and xval in self.domains[y]:
+            self.domains[y].remove(xval)
+            return True
+        if len(self.domains[y]) == 1 and yval in self.domains[x]:
+            self.domains[x].remove(yval)
+            return True
+        return False
 
-    # Updates each list in domains to retain consistency
-    # Returns true if the domains were updated
-    def __alldiff(self, domains):
-        was_changed = False
-        dom = sorted(domains, key=len)
-        if len(dom[0]) > 1:
-            # No singleton domains
-            return False
-        
-        for i in range(len(dom)):
-            if len(dom[i]) == 1:
-                val = dom[i][0]
-                for list in dom[i + 1:]:
-                    if val in list:
-                        list.remove(val)
-                        was_changed = True
-        
-        return was_changed
+    # Converts a list of 9 values to a tuple with every possible binary constraint between them
+    def __alldiff(self, group):
+        result = []
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                result.append((group[i], group[j]))
+        return result
     
     def __get_all_rows(self):
-        return self.domains
+        result = []
+        for i in range(9):
+            result.append([])
+            for j in range(9):
+                result[i].append(i * 9 + j)
+        return result
 
     def __get_all_columns(self):
-        domains = []
-        for row in range(9):
-            domains.append([])
-            for col in range(9):
-                domains[row].append(self.domains[col][row])
-        return domains
+        result = []
+        for i in range(9):
+            result.append([])
+            count = i
+            while count < 81:
+                result[i].append(count)
+                count += 9
+        return result
     
     def __get_all_boxes(self):
-        domains = []
+        result = []
         for start_row in range(3):
             for start_col in range(3):
-                domains.append([])
+                result.append([])
                 for row in range(start_row * 3, (start_row + 1) * 3):
                     for col in range(start_col * 3, (start_col + 1) * 3):
-                        domains[start_row * 3 + start_col].append(self.domains[row][col])
-        return domains
-        
-    def __str__(self):
-        return "\n\n".join("\n".join(str(y) for y in x) for x in self.domains)
+                        result[start_row * 3 + start_col].append(row * 9 + col)
+        return result
+
+    # This is awful
+    def __get_neighbors(self, coord):
+        results = []
+        for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
+            if coord not in group:
+                continue
+            for pair in [x for x in self.__alldiff(group)]:
+                if coord in pair:
+                    results.append(pair)
+        return results

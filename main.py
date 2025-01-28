@@ -16,7 +16,11 @@ for i, line in enumerate(open('sudoku.csv', 'r').read().splitlines()[1:num+1]):
 quizzes = quizzes.reshape((-1, 9, 9))
 solutions = solutions.reshape((-1, 9, 9))
 
-for quiz in quizzes:
+for i, quiz in enumerate(quizzes):
     p = puzzle.Puzzle(quiz.tolist())
     result = p.solve()
-    print(result)
+    sol = "".join(str(x) for y in solutions[i].tolist() for x in y)
+    if sol == result:
+        print("Solved correctly.")
+    else:
+        print("Error")
