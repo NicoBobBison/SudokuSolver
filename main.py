@@ -1,6 +1,7 @@
 # Test puzzles from Kaggle: https://www.kaggle.com/datasets/bryanpark/sudoku?resource=download
 import numpy as np
 import puzzle
+import time
 
 num = int(input("Enter the number of puzzles you want to solve (max 100000):"))
 
@@ -15,6 +16,10 @@ for i, line in enumerate(open('sudoku.csv', 'r').read().splitlines()[1:num+1]):
         solutions[i, j] = s
 quizzes = quizzes.reshape((-1, 9, 9))
 solutions = solutions.reshape((-1, 9, 9))
+
+print("Starting to solve...")
+start = time.time()
+errors = 0
 
 for i, quiz in enumerate(quizzes):
     p = puzzle.Puzzle(quiz.tolist())
@@ -34,3 +39,9 @@ for i, quiz in enumerate(quizzes):
         print(f"Intended solution: {sol}")
         found = ""
         print(f"Solution found   : {result_str}")
+        errors += 1
+
+total_time = time.time() - start
+print(f"Finished solving {num} sudokus in {round(total_time, 2)} seconds")
+print(f"Rate: {round(num / total_time, 2)} sudokus per second")
+print(f"Errors: {errors}")

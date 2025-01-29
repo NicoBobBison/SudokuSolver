@@ -95,6 +95,7 @@ class Puzzle:
             puzzle_copy.domains[index] = [val]
             init_incomplete = puzzle_copy.incomplete.copy()
             if puzzle_copy.ac3(q):
+                # Check if performing ac3 solved some cells
                 for i in init_incomplete:
                     if i not in puzzle_copy.incomplete:
                         assignment.append((i, puzzle_copy.domains[i][0]))
