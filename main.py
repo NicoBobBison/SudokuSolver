@@ -27,9 +27,9 @@ for i, quiz in enumerate(quizzes):
             result_str += str(j)
     sol = "".join(str(x) for y in solutions[i].tolist() for x in y)
     if sol == result_str:
-        print("Solved correctly.")
+        print(f"{i+1}: Solved correctly.")
     else:
-        print("Error:")
+        print(f"{i+1}: Error")
         print(f"Problem          : {"".join(str(x) for y in quiz.tolist() for x in y)}")
         print(f"Intended solution: {sol}")
         found = ""
