@@ -72,6 +72,13 @@ class Puzzle:
     def backtrack(self, assignment: list):
         def min_remaining_values(i):
             return len(self.domains[i])
+        def least_constraining_value(i):
+            # A list containing all possible values among incomplete domains
+            # Ex: if domains are [1, 2] and [1, 3], this would be [1, 1, 2, 3]
+            possible_incomplete = []
+            for j in self.incomplete:
+                possible_incomplete += self.domains[j]
+            return possible_incomplete.count(i)
         
         # print(f"Assignment: {assignment}")
         if len(self.incomplete) == 0:
@@ -91,7 +98,7 @@ class Puzzle:
         index = self.incomplete.pop(0)
         neighbors = self.__get_neighbors(index)
         # TODO: Order domain values?
-        for val in self.domains[index]:
+        for val in sorted(self.domains[index], key=least_constraining_value):
             assignment.append((index, val))
             # print(f"Assigning {(index, val)}")
             q = queue.Queue()
