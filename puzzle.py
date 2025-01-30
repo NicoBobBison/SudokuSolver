@@ -8,10 +8,7 @@ class Puzzle:
         self.domains = []
         # Indeces of incomplete values
         self.incomplete = []
-        combined = []
-        for r in rows:
-            combined += r
-        for i, val in enumerate(combined):
+        for i, val in enumerate(rows):
             if val == 0:
                 self.incomplete.append(i)
                 self.domains.append([1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -25,7 +22,7 @@ class Puzzle:
                 q.put(pair)
         self.ac3(q)
         if len(self.incomplete) > 0:
-            assignment = self.__backtracking_search()
+            assignment = self.backtracking_search()
             # print(f"Assignment: {assignment}")
             for a in assignment:
                 self.domains[a[0]] = [a[1]]
@@ -38,6 +35,7 @@ class Puzzle:
         while not queue.empty():
             popped = queue.get()
             if len(self.domains[popped[0]]) == 0 or len(self.domains[popped[1]]) == 0:
+                # print("AC3 fail")
                 return False
             # print(f"Popped: {popped}")
             if self.__revise(popped[0], popped[1]):
@@ -66,21 +64,28 @@ class Puzzle:
             return True
         return False
     
-    def __backtracking_search(self):
+    def backtracking_search(self):
         # print(f"Initial: {self.domains}")
-        return self.__backtrack([])
+        return self.backtrack([])
         
     # Recursive call
-    def __backtrack(self, assignment: list):
-        def len_of_array_from_index(i):
+    def backtrack(self, assignment: list):
+        def min_remaining_values(i):
             return len(self.domains[i])
         
         # print(f"Assignment: {assignment}")
         if len(self.incomplete) == 0:
-            # print(f"Complete assignment: {assignment}")
-            return assignment
+            q = queue.Queue()
+            for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
+                for pair in self.__alldiff(group):
+                    q.put(pair)
+            if(self.ac3(q)):
+                # print(f"Complete assignment: {assignment}")
+                return assignment
+            else:
+                return None
         
-        self.incomplete.sort(key=len_of_array_from_index)
+        self.incomplete.sort(key=min_remaining_values)
         # print(f"Incomplete: {self.incomplete}")
         # print(f"Domains: {self.domains}")
         index = self.incomplete.pop(0)
@@ -88,20 +93,24 @@ class Puzzle:
         # TODO: Order domain values?
         for val in self.domains[index]:
             assignment.append((index, val))
+            # print(f"Assigning {(index, val)}")
             q = queue.Queue()
             for n in neighbors:
                 q.put(n)
             puzzle_copy = copy.deepcopy(self)
             puzzle_copy.domains[index] = [val]
-            init_incomplete = puzzle_copy.incomplete.copy()
+            init_incomplete = copy.deepcopy(puzzle_copy.incomplete)
+            # print("Running AC3")
             if puzzle_copy.ac3(q):
                 # Check if performing ac3 solved some cells
                 for i in init_incomplete:
-                    if i not in puzzle_copy.incomplete:
+                    if i not in puzzle_copy.incomplete and len(puzzle_copy.domains[i]) == 1:
+                        # print(f"Assignment from AC-3: {(i, puzzle_copy.domains[i][0])}")
                         assignment.append((i, puzzle_copy.domains[i][0]))
-                result = puzzle_copy.__backtrack(assignment)
+                result = puzzle_copy.backtrack(assignment)
                 if result != None:
                     return result
+            # print(f"Unassign: {(index, val)}")
             assignment.remove((index, val))
         self.incomplete.append(index)
         return None
