@@ -18,12 +18,22 @@ class Puzzle:
     def solve(self):
         q = queue.Queue()
         for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
-            for pair in self.__alldiff(group):
-                q.put(pair)
-        self.ac3(q)
+            q.put(group)
+        while not q.empty():
+            popped = q.get()
+            # print(f"Popped: {popped}")
+            updated = self.__alldiff_updatevals(popped)
+            # print(f"Updated: {updated}")
+            if len(updated) > 0:
+                for u in updated:
+                    for neighbor in self.__get_neighbor_groups(u):
+                        q.put(neighbor)
+        # print(self.domains)
         if len(self.incomplete) > 0:
             assignment = self.backtracking_search()
             # print(f"Assignment: {assignment}")
+            if assignment == None:
+                return None
             for a in assignment:
                 self.domains[a[0]] = [a[1]]
         # print(len(self.incomplete))
@@ -70,8 +80,6 @@ class Puzzle:
         
     # Recursive call
     def backtrack(self, assignment: list):
-        def min_remaining_values(i):
-            return len(self.domains[i])
         def least_constraining_value(i):
             # A list containing all possible values among incomplete domains
             # Ex: if domains are [1, 2] and [1, 3], this would be [1, 1, 2, 3]
@@ -84,7 +92,7 @@ class Puzzle:
         if len(self.incomplete) == 0:
             q = queue.Queue()
             for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
-                for pair in self.__alldiff(group):
+                for pair in self.__alldiff_getpairs(group):
                     q.put(pair)
             if(self.ac3(q)):
                 # print(f"Complete assignment: {assignment}")
@@ -92,7 +100,7 @@ class Puzzle:
             else:
                 return None
         
-        self.incomplete.sort(key=min_remaining_values)
+        self.incomplete.sort(key=self.len_domains)
         # print(f"Incomplete: {self.incomplete}")
         # print(f"Domains: {self.domains}")
         index = self.incomplete.pop(0)
@@ -122,8 +130,24 @@ class Puzzle:
         self.incomplete.append(index)
         return None
 
+    # Updates a group's corresponding domains based on alldiff restriction
+    # Returns a list of changed indeces
+    def __alldiff_updatevals(self, group):
+        group.sort(key=self.len_domains)
+        changed = []
+        if len(self.domains[group[0]]) > 1:
+            return changed
+        for i, group_val in enumerate(group):
+            if len(self.domains[group_val]) == 1:
+                val = self.domains[group_val][0]
+                for j in range(i + 1, len(group)):
+                    if val in self.domains[group[j]]:
+                        self.domains[group[j]].remove(val)
+                        changed.append(group[j])
+        return changed
+
     # Converts a list of 9 values to a tuple with every possible binary constraint between them
-    def __alldiff(self, group):
+    def __alldiff_getpairs(self, group):
         result = []
         for i in range(len(group)):
             for j in range(i + 1, len(group)):
@@ -158,13 +182,27 @@ class Puzzle:
                         result[start_row * 3 + start_col].append(row * 9 + col)
         return result
 
+    def __get_neighbor_groups(self, coord: int):
+        results = [[], [], []]
+        # Same row
+        for i in range(coord - (coord % 9), coord - (coord % 9) + 9):
+            results[0].append(i)
+        #Same column
+        for i in range(coord % 9, 81, 9):
+            results[1].append(i)
+        start = coord - (coord % 3) - (9 * ((coord // 9) % 3))
+        for r in range(start, start + 27, 9):
+            for c in range(3):
+                results[2].append(r+c)
+        return results
+
     def __get_neighbors(self, coord: int):
         results = []
         # Same row
         for i in range(coord - (coord % 9), coord - (coord % 9) + 9):
             if i != coord:
                 results.append((coord, i))
-                #Same column
+        #Same column
         for i in range(coord % 9, 81, 9):
             if i != coord:
                 results.append((coord, i))
@@ -177,3 +215,5 @@ class Puzzle:
                     results.append((coord, r + c))
         return results
     
+    def len_domains(self, i):
+        return len(self.domains[i])
