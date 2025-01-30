@@ -1,10 +1,13 @@
 # Sudoku Solver
 ## Summary
-Sudoku solver... solves sudokus. It frames sudokus as a constraint satisfaction problem (CSP), then uses a mix of establishing arc consistency and backtracking to solve around 60 sudokus per second.
+Sudoku Solver... solves sudokus. It frames sudokus as a constraint satisfaction problem (CSP), then uses a mix of establishing arc consistency and backtracking to solve around 60 sudokus per second.
 
 ## Features
 - Solves sudokus from an included database quickly and verifies their answers
 - Solves custom sudokus through the command line
+
+## Limitations
+Some sudokus (like the one at the top of ```main.py```) are too complex, and take too long to run.
 
 ## How to use
 1. Download/clone the repository
