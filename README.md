@@ -7,7 +7,7 @@ Sudoku Solver... solves sudokus. It frames sudokus as a constraint satisfaction 
 - Solves custom sudokus through the command line
 
 ## Limitations
-Some sudokus (like the one at the top of ```main.py```) are too complex, and take too long to run. This might be fixed in the future by implementing better heuristics during backtracking.
+Some sudokus (like the one at the top of ```main.py```) are too complex and take too long to run. This might be fixed in the future by improving the backtracking algorithm.
 
 ## How to use
 1. Download/clone the repository
