@@ -10,6 +10,7 @@ import argparse
 
 parser = argparse.ArgumentParser(prog="SudokuSolver", description="A sudoku solver.")
 parser.add_argument("--custom", action="store_true")
+parser.add_argument("--debug", action="store_true")
 args = parser.parse_args()
 
 if args.custom:
@@ -65,7 +66,8 @@ for i, quiz in enumerate(quizzes):
             result_str += str(j)
     sol = "".join(str(x) for y in solutions[i].tolist() for x in y)
     if sol == result_str:
-        print(f"{i+1}: Solved correctly.")
+        if args.debug:
+            print(f"{i+1}: Solved correctly.")
     else:
         print(f"{i+1}: Error")
         print(f"Problem          : {"".join(str(x) for y in quiz.tolist() for x in y)}")

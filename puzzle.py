@@ -1,35 +1,39 @@
 import numpy as np
-import queue
 import copy
+from collections import defaultdict
+from collections import deque
 
 # Coordinates start with 0 at top left, then move right and wrap around. Bottom right is 80.
 class Puzzle:
     def __init__(self, rows):
         self.domains = []
+        self.constraints = defaultdict(list)
         # Indeces of incomplete values
-        self.incomplete = []
+        self.incomplete = set()
         for i, val in enumerate(rows):
             if val == 0:
-                self.incomplete.append(i)
+                self.incomplete.add(i)
                 self.domains.append([1, 2, 3, 4, 5, 6, 7, 8, 9])
             else:
                 self.domains.append([val])
 
     def solve(self):
-        q = queue.Queue()
+        q = deque()
         for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
-            q.put(group)
-        while not q.empty():
-            popped = q.get()
-            # print(f"Popped: {popped}")
-            updated = self.__alldiff_updatevals(popped)
-            # print(f"Updated: {updated}")
-            if len(updated) > 0:
-                for u in updated:
-                    for neighbor in self.__get_neighbor_groups(u):
-                        q.put(neighbor)
+            for pair in self.__alldiff_getpairs(group):
+                q.append(pair)
+                q.append((pair[1], pair[0]))
+                self.constraints[pair[0]].append(pair[1])
+                self.constraints[pair[1]].append(pair[0])
+
+        if not self.ac3(q):
+            print("Inconsistency detected.")
+            return None
+        
         # print(self.domains)
         if len(self.incomplete) > 0:
+            print("Not fully solved with AC-3")
+            print(self.domains)
             assignment = self.backtracking_search()
             # print(f"Assignment: {assignment}")
             if assignment == None:
@@ -42,37 +46,30 @@ class Puzzle:
     # Takes in a queue with every initial pair to check
     # Returns false if an inconsistency is detected, true otherwise
     def ac3(self, queue):
-        while not queue.empty():
-            popped = queue.get()
-            if len(self.domains[popped[0]]) == 0 or len(self.domains[popped[1]]) == 0:
-                # print("AC3 fail")
-                return False
+        while len(queue) > 0:
+            popped = queue.popleft()
             # print(f"Popped: {popped}")
             if self.__revise(popped[0], popped[1]):
+                if len(self.domains[popped[0]]) == 0:
+                    # print("AC3 fail")
+                    return False
                 for neighbor in self.__get_neighbors(popped[0]):
-                    queue.put(neighbor)
+                    if neighbor[1] == popped[1] or neighbor[1] not in self.incomplete:
+                        continue
+                    queue.append((neighbor[1], neighbor[0]))
         return True
     
     def __revise(self, x, y):
-        xval = self.domains[x][0]
-        yval = self.domains[y][0]
-        if len(self.domains[x]) == 1 and xval in self.domains[y]:
-            self.domains[y].remove(xval)
-            if len(self.domains[y]) == 1:
-                # print(f"Incomplete before: {self.incomplete}")
-                # print(f"Remove: {y}")
-                self.incomplete.remove(y)
-                # print(f"Incomplete after: {self.incomplete}")
-            return True
-        if len(self.domains[y]) == 1 and yval in self.domains[x]:
-            self.domains[x].remove(yval)
-            if len(self.domains[x]) == 1:
-                # print(f"Incomplete before: {self.incomplete}")
-                # print(f"Remove: {x}")
+        revised = False
+        if len(self.domains[y]) == 1:
+            to_remove = [val for val in self.domains[x] if val == self.domains[y][0]]
+            for val in to_remove:
+                self.domains[x].remove(val)
+                revised = True
+                break
+            if len(self.domains[x]) == 1 and x in self.incomplete:
                 self.incomplete.remove(x)
-                # print(f"Incomplete after: {self.incomplete}")
-            return True
-        return False
+        return revised
     
     def backtracking_search(self):
         # print(f"Initial: {self.domains}")
@@ -87,34 +84,36 @@ class Puzzle:
             for j in self.incomplete:
                 possible_incomplete += self.domains[j]
             return possible_incomplete.count(i)
-        
+
         # print(f"Assignment: {assignment}")
         if len(self.incomplete) == 0:
-            q = queue.Queue()
+            q = deque()
             for group in self.__get_all_rows() + self.__get_all_columns() + self.__get_all_boxes():
                 for pair in self.__alldiff_getpairs(group):
-                    q.put(pair)
+                    q.append(pair)
             if(self.ac3(q)):
                 # print(f"Complete assignment: {assignment}")
                 return assignment
             else:
                 return None
         
-        self.incomplete.sort(key=self.len_domains)
+        incomplete_list = list(self.incomplete)
+
+        incomplete_list.sort(key=self.len_domains)
         # print(f"Incomplete: {self.incomplete}")
         # print(f"Domains: {self.domains}")
-        index = self.incomplete.pop(0)
+        index = incomplete_list.pop(0)
         neighbors = self.__get_neighbors(index)
         # TODO: Order domain values?
         for val in sorted(self.domains[index], key=least_constraining_value):
             assignment.append((index, val))
             # print(f"Assigning {(index, val)}")
-            q = queue.Queue()
+            q = deque()
             for n in neighbors:
-                q.put(n)
+                q.append(n)
             puzzle_copy = copy.deepcopy(self)
             puzzle_copy.domains[index] = [val]
-            init_incomplete = copy.deepcopy(puzzle_copy.incomplete)
+            init_incomplete = list(copy.deepcopy(puzzle_copy.incomplete))
             # print("Running AC3")
             if puzzle_copy.ac3(q):
                 # Check if performing ac3 solved some cells
@@ -127,24 +126,8 @@ class Puzzle:
                     return result
             # print(f"Unassign: {(index, val)}")
             assignment.remove((index, val))
-        self.incomplete.append(index)
+        incomplete_list.append(index)
         return None
-
-    # Updates a group's corresponding domains based on alldiff restriction
-    # Returns a list of changed indeces
-    def __alldiff_updatevals(self, group):
-        group.sort(key=self.len_domains)
-        changed = []
-        if len(self.domains[group[0]]) > 1:
-            return changed
-        for i, group_val in enumerate(group):
-            if len(self.domains[group_val]) == 1:
-                val = self.domains[group_val][0]
-                for j in range(i + 1, len(group)):
-                    if val in self.domains[group[j]]:
-                        self.domains[group[j]].remove(val)
-                        changed.append(group[j])
-        return changed
 
     # Converts a list of 9 values to a tuple with every possible binary constraint between them
     def __alldiff_getpairs(self, group):
@@ -182,38 +165,8 @@ class Puzzle:
                         result[start_row * 3 + start_col].append(row * 9 + col)
         return result
 
-    def __get_neighbor_groups(self, coord: int):
-        results = [[], [], []]
-        # Same row
-        for i in range(coord - (coord % 9), coord - (coord % 9) + 9):
-            results[0].append(i)
-        #Same column
-        for i in range(coord % 9, 81, 9):
-            results[1].append(i)
-        start = coord - (coord % 3) - (9 * ((coord // 9) % 3))
-        for r in range(start, start + 27, 9):
-            for c in range(3):
-                results[2].append(r+c)
-        return results
-
     def __get_neighbors(self, coord: int):
-        results = []
-        # Same row
-        for i in range(coord - (coord % 9), coord - (coord % 9) + 9):
-            if i != coord:
-                results.append((coord, i))
-        #Same column
-        for i in range(coord % 9, 81, 9):
-            if i != coord:
-                results.append((coord, i))
-        # Same box
-        # Wizard magic to get the top left tile of the current box
-        start = coord - (coord % 3) - (9 * ((coord // 9) % 3))
-        for r in range(start, start + 27, 9):
-            for c in range(3):
-                if r + c != coord:
-                    results.append((coord, r + c))
-        return results
+        return [(coord, x) for x in self.constraints[coord]]
     
     def len_domains(self, i):
         return len(self.domains[i])
