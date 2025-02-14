@@ -62,11 +62,14 @@ class Puzzle:
     def __revise(self, x, y):
         revised = False
         if len(self.domains[y]) == 1:
-            to_remove = [val for val in self.domains[x] if val == self.domains[y][0]]
-            for val in to_remove:
-                self.domains[x].remove(val)
+            to_remove = None
+            for i, val in enumerate(self.domains[x]):
+                if val == self.domains[y][0]:
+                    to_remove = val
+                    break
+            if to_remove is not None:
+                self.domains[x].remove(to_remove)
                 revised = True
-                break
             if len(self.domains[x]) == 1 and x in self.incomplete:
                 self.incomplete.remove(x)
         return revised
