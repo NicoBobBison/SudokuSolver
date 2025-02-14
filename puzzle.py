@@ -13,9 +13,9 @@ class Puzzle:
         for i, val in enumerate(rows):
             if val == 0:
                 self.incomplete.add(i)
-                self.domains.append([1, 2, 3, 4, 5, 6, 7, 8, 9])
+                self.domains.append({1, 2, 3, 4, 5, 6, 7, 8, 9})
             else:
-                self.domains.append([val])
+                self.domains.append({val})
 
     def solve(self):
         q = deque()
@@ -32,21 +32,21 @@ class Puzzle:
         
         # print(self.domains)
         if len(self.incomplete) > 0:
-            print("Not fully solved with AC-3")
-            print(self.domains)
+            # print("Not fully solved with AC-3")
+            # print(self.domains)
             assignment = self.backtracking_search()
             # print(f"Assignment: {assignment}")
             if assignment == None:
                 return None
             for a in assignment:
-                self.domains[a[0]] = [a[1]]
+                self.domains[a[0]] = {a[1]}
         # print(len(self.incomplete))
         return self.domains
 
     # Takes in a queue with every initial pair to check
     # Returns false if an inconsistency is detected, true otherwise
     def ac3(self, queue):
-        while len(queue) > 0:
+        while queue:
             popped = queue.popleft()
             # print(f"Popped: {popped}")
             if self.__revise(popped[0], popped[1]):
@@ -62,13 +62,9 @@ class Puzzle:
     def __revise(self, x, y):
         revised = False
         if len(self.domains[y]) == 1:
-            to_remove = None
-            for i, val in enumerate(self.domains[x]):
-                if val == self.domains[y][0]:
-                    to_remove = val
-                    break
-            if to_remove is not None:
-                self.domains[x].remove(to_remove)
+            val = list(self.domains[y])[0]
+            if val in self.domains[x]:
+                self.domains[x].remove(val)
                 revised = True
             if len(self.domains[x]) == 1 and x in self.incomplete:
                 self.incomplete.remove(x)
@@ -115,7 +111,7 @@ class Puzzle:
             for n in neighbors:
                 q.append(n)
             puzzle_copy = copy.deepcopy(self)
-            puzzle_copy.domains[index] = [val]
+            puzzle_copy.domains[index] = {val}
             init_incomplete = list(copy.deepcopy(puzzle_copy.incomplete))
             # print("Running AC3")
             if puzzle_copy.ac3(q):
@@ -123,7 +119,7 @@ class Puzzle:
                 for i in init_incomplete:
                     if i not in puzzle_copy.incomplete and len(puzzle_copy.domains[i]) == 1:
                         # print(f"Assignment from AC-3: {(i, puzzle_copy.domains[i][0])}")
-                        assignment.append((i, puzzle_copy.domains[i][0]))
+                        assignment.append((i, list(puzzle_copy.domains[i])[0]))
                 result = puzzle_copy.backtrack(assignment)
                 if result != None:
                     return result
@@ -133,6 +129,7 @@ class Puzzle:
         return None
 
     # Converts a list of 9 values to a tuple with every possible binary constraint between them
+    # Note: the values in the pairs will be in order, so (a, b) and (b, a) won't both be in the list
     def __alldiff_getpairs(self, group):
         result = []
         for i in range(len(group)):

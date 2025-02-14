@@ -9,8 +9,8 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(prog="SudokuSolver", description="A sudoku solver.")
-parser.add_argument("--custom", action="store_true")
-parser.add_argument("--debug", action="store_true")
+parser.add_argument("--custom", action="store_true", help="Prompts you to enter a custom sudoku string.")
+parser.add_argument("--debug", action="store_true", help="Shows progress towards solving sudokus.")
 args = parser.parse_args()
 
 if args.custom:
@@ -37,41 +37,35 @@ if args.custom:
 num = int(input("Enter the number of puzzles you want to solve (max 100000):"))
 
 # Import code is from Kaggle dataset
-quizzes = np.zeros((num, 81), np.int32)
-solutions = np.zeros((num, 81), np.int32)
+quizzes = np.zeros((num, 81), np.int8)
+solutions = np.zeros((num, 81), np.int8)
 for i, line in enumerate(open('sudoku.csv', 'r').read().splitlines()[1:num+1]):
     quiz, solution = line.split(",")
     for j, q_s in enumerate(zip(quiz, solution)):
         q, s = q_s
         quizzes[i, j] = q
         solutions[i, j] = s
-quizzes = quizzes.reshape((-1, 9, 9))
-solutions = solutions.reshape((-1, 9, 9))
 
 print("Starting to solve...")
 start = time.time()
 errors = 0
 
 for i, quiz in enumerate(quizzes):
-    combined = []
-    for r in quiz.tolist():
-        combined += r
-    p = puzzle.Puzzle(combined)
+    p = puzzle.Puzzle(quiz.tolist())
     result = p.solve()
-    result_str = ""
-    for j in result:
-        if len(j) == 1:
-            result_str += str(j[0])
+    result_list = np.zeros((81), np.int8)
+    for j, s in enumerate(result):
+        if len(s) == 1:
+            result_list[j] = s.pop()
         else:
-            result_str += str(j)
-    sol = "".join(str(x) for y in solutions[i].tolist() for x in y)
-    if sol == result_str:
+            result_list[j] = 0
+    if (result_list == solutions[i]).all():
         if args.debug:
             print(f"{i+1}: Solved correctly.")
     else:
         print(f"{i+1}: Error")
         print(f"Problem          : {"".join(str(x) for y in quiz.tolist() for x in y)}")
-        print(f"Intended solution: {sol}")
+        print(f"Intended solution: {solutions[i]}")
         found = ""
         print(f"Solution found   : {result_str}")
         errors += 1
